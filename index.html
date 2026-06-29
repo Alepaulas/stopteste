@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stop! Multiplayer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface-2: #f0efe9;
+    --border: #e0dfd8;
+    --border-strong: #c8c7be;
+    --text: #1a1a18;
+    --text-muted: #888780;
+    --accent: #2563eb;
+    --accent-bg: #eff6ff;
+    --accent-text: #1d4ed8;
+    --accent-border: #bfdbfe;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --danger-text: #b91c1c;
+    --success-bg: #f0fdf4;
+    --success-text: #15803d;
+    --warning-bg: #fffbeb;
+    --warning-text: #b45309;
+    --warning-border: #fcd34d;
+    --radius: 8px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+  }
+
+  #app {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h1 { font-size: 26px; font-weight: 600; color: var(--text); margin-bottom: 0.25rem; }
+  .sub { font-size: 14px; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  label { font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+
+  input[type="text"], select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    margin-bottom: 0.75rem;
+  }
+  input[type="text"]:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+
+  .players-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .player-row { display: flex; align-items: center; gap: 8px; }
+  .player-row input { flex: 1; margin-bottom: 0; }
+  .rm-btn {
+    padding: 6px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .rm-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger-border); }
+
+  .btn {
+    padding: 9px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-stop {
+    width: 100%;
+    padding: 14px;
+    font-size: 18px;
+    font-weight: 600;
+    background: var(--danger-bg);
+    color: var(--danger);
+    border: 1.5px solid var(--danger-border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-stop:hover { background: #fee2e2; }
+
+  .categories-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+  .cat-toggle {
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: all 0.1s;
+  }
+  .cat-toggle.on { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent-border); font-weight: 500; }
+
+  .big-letter {
+    font-size: 96px;
+    font-weight: 700;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1;
+    margin: 1.25rem 0;
+    letter-spacing: -2px;
+  }
+
+  .timer {
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer.danger { color: var(--danger); }
+
+  .player-turn-badge {
+    display: inline-block;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    border: 1px solid var(--accent-border);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 0.75rem;
+  }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-group label { font-size: 12px; color: var(--text-muted); margin-bottom: 2px; }
+  .field-group input { margin-bottom: 0; font-size: 14px; }
+
+  .row { display: flex; gap: 8px; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+  .round-badge { font-size: 13px; color: var(--text-muted); }
+
+  .validation-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 0.75rem;
+  }
+  .val-header { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 10px; }
+  .val-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 6px; flex-wrap: wrap; }
+  .val-cat { color: var(--text-muted); width: 90px; flex-shrink: 0; }
+  .val-ans { color: var(--text); flex: 1; font-style: italic; min-width: 60px; }
+  .val-ans.empty { color: var(--text-muted); }
+  .val-points { display: flex; gap: 4px; }
+  .val-btn {
+    padding: 4px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 12px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    transition: all 0.1s;
+  }
+  .val-btn.active-ok { background: var(--success-bg); color: var(--success-text); border-color: #86efac; font-weight: 700; }
+  .val-btn.active-dup { background: var(--warning-bg); color: var(--warning-text); border-color: var(--warning-border); font-weight: 700; }
+  .val-btn.active-no { background: var(--danger-bg); color: var(--danger-text); border-color: var(--danger-border); font-weight: 700; }
+
+  .scores-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .scores-table th { text-align: left; padding: 8px; color: var(--text-muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+  .scores-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); }
+  .scores-table tr:last-child td { border-bottom: none; }
+  .score-num { font-weight: 600; color: var(--accent); }
+  .winner-row td { background: var(--success-bg); color: var(--success-text); }
+  .winner-row .score-num { color: var(--success-text); }
+
+  .options-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .opt-group { display: flex; flex-direction: column; gap: 4px; }
+  .opt-group select { margin-bottom: 0; width: auto; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SETUP -->
+<div id="screen-setup" class="screen active">
+  <h1>✋ Stop!</h1>
+  <p class="sub">Configure o jogo e chame os amigos</p>
+
+  <div class="card">
+    <label>Jogadores</label>
+    <div class="players-list" id="players-list"></div>
+    <button class="btn" onclick="addPlayer()">+ Adicionar jogador</button>
+  </div>
+
+  <div class="card">
+    <label>Categorias (escolha pelo menos 2)</label>
+    <div class="categories-grid" id="cats-grid"></div>
+  </div>
+
+  <div class="card">
+    <div class="options-row">
+      <div class="opt-group">
+        <label>Rodadas</label>
+        <select id="rounds-select">
+          <option value="3">3 rodadas</option>
+          <option value="5" selected>5 rodadas</option>
+          <option value="7">7 rodadas</option>
+          <option value="10">10 rodadas</option>
+        </select>
+      </div>
+      <div class="opt-group">
+        <label>Tempo por turno</label>
+        <select id="time-select">
+          <option value="60">60 segundos</option>
+          <option value="90" selected>90 segundos</option>
+          <option value="120">120 segundos</option>
+          <option value="0">Sem limite</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="startGame()" style="width:100%; padding:12px; font-size:15px;">Começar jogo →</button>
+</div>
+
+<!-- PLAY -->
+<div id="screen-play" class="screen">
+  <div class="row">
+    <span class="round-badge" id="round-label"></span>
+    <div class="spacer"></div>
+    <span class="timer" id="timer-display">90</span>
+  </div>
+  <div class="player-turn-badge" id="turn-badge"></div>
+  <div class="big-letter" id="big-letter">A</div>
+  <div class="fields-grid" id="fields-grid"></div>
+  <button class="btn-stop" onclick="stopGame()">🛑 STOP!</button>
+</div>
+
+<!-- VALIDATE -->
+<div id="screen-validate" class="screen">
+  <h1>Validação</h1>
+  <p class="sub" id="validate-sub"></p>
+  <div id="validate-list"></div>
+  <button class="btn btn-primary" onclick="finishValidation()" style="width:100%; margin-top:0.5rem;">Ver pontuação →</button>
+</div>
+
+<!-- SCORES -->
+<div id="screen-scores" class="screen">
+  <h1>Placar</h1>
+  <p class="sub" id="scores-sub"></p>
+  <div class="card">
+    <table class="scores-table" id="scores-table"></table>
+  </div>
+  <div class="row">
+    <button class="btn" onclick="goSetup()">Nova partida</button>
+    <div class="spacer"></div>
+    <button class="btn btn-primary" id="next-round-btn" onclick="nextRound()">Próxima rodada →</button>
+  </div>
+</div>
+
+</div>
+<script>
+const ALL_CATS = ['Nome','Animal','Fruta','Cor','País','Cidade','Objeto','Profissão','Comida','Esporte','Marca','Filme'];
+const LETTERS = 'ABCDEFGHIJLMNOPRSTUVZ'.split('');
+
+let players = [], selectedCats = ['Nome','Animal','Fruta','Cor','País','Cidade'];
+let totalRounds = 5, timeLimit = 90;
+let currentRound = 0, currentPlayerIdx = 0;
+let currentLetter = '', roundAnswers = {}, allScores = {};
+let timerInterval = null, timeLeft = 0, usedLetters = [];
+let roundPoints = {};
+
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function initSetup() {
+  players = ['Jogador 1','Jogador 2'];
+  renderPlayers(); renderCats();
+}
+
+function renderPlayers() {
+  document.getElementById('players-list').innerHTML = players.map((p,i) => `
+    <div class="player-row">
+      <input type="text" value="${p}" oninput="players[${i}]=this.value" placeholder="Nome do jogador" />
+      ${players.length > 2 ? `<button class="rm-btn" onclick="removePlayer(${i})">×</button>` : ''}
+    </div>`).join('');
+}
+
+function addPlayer() { players.push('Jogador '+(players.length+1)); renderPlayers(); }
+function removePlayer(i) { players.splice(i,1); renderPlayers(); }
+
+function renderCats() {
+  document.getElementById('cats-grid').innerHTML = ALL_CATS.map(c =>
+    `<button class="cat-toggle ${selectedCats.includes(c)?'on':''}" onclick="toggleCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function toggleCat(c) {
+  if(selectedCats.includes(c)) { if(selectedCats.length>2) selectedCats=selectedCats.filter(x=>x!==c); }
+  else selectedCats.push(c);
+  renderCats();
+}
+
+function startGame() {
+  const inputs = document.querySelectorAll('#players-list input');
+  players = Array.from(inputs).map(i=>i.value.trim()||'Jogador');
+  totalRounds = parseInt(document.getElementById('rounds-select').value);
+  timeLimit = parseInt(document.getElementById('time-select').value);
+  currentRound = 0; usedLetters = []; allScores = {};
+  players.forEach(p=>allScores[p]=0);
+  nextRound();
+}
+
+function nextRound() {
+  currentRound++;
+  if(currentRound > totalRounds) { showScores(true); return; }
+  currentPlayerIdx = (currentRound-1) % players.length;
+
+  let avail = LETTERS.filter(l=>!usedLetters.includes(l));
+  if(!avail.length) { usedLetters=[]; avail=LETTERS; }
+  currentLetter = avail[Math.floor(Math.random()*avail.length)];
+  usedLetters.push(currentLetter);
+
+  roundAnswers = {};
+  players.forEach(p=>{ roundAnswers[p]={}; selectedCats.forEach(c=>roundAnswers[p][c]=''); });
+
+  renderPlay(); show('play'); startTimer();
+}
+
+function renderPlay() {
+  document.getElementById('round-label').textContent = `Rodada ${currentRound} de ${totalRounds}`;
+  document.getElementById('turn-badge').textContent = `✏️ Vez de: ${players[currentPlayerIdx]}`;
+  document.getElementById('big-letter').textContent = currentLetter;
+  document.getElementById('fields-grid').innerHTML = selectedCats.map(c=>`
+    <div class="field-group">
+      <label>${c}</label>
+      <input type="text" id="field-${c.replace(/\s/g,'_')}" placeholder="${c} com ${currentLetter}..." oninput="saveField('${c}',this.value)" />
+    </div>`).join('');
+}
+
+function saveField(cat, val) { roundAnswers[players[currentPlayerIdx]][cat]=val; }
+
+function startTimer() {
+  clearInterval(timerInterval);
+  const el = document.getElementById('timer-display');
+  el.classList.remove('danger');
+  if(!timeLimit) { el.textContent='∞'; return; }
+  timeLeft=timeLimit; el.textContent=timeLeft;
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    el.textContent=timeLeft;
+    if(timeLeft<=10) el.classList.add('danger');
+    if(timeLeft<=0) { clearInterval(timerInterval); advance(); }
+  },1000);
+}
+
+function stopGame() { clearInterval(timerInterval); collectAnswers(); advance(); }
+
+function advance() {
+  collectAnswers();
+  if(currentPlayerIdx < players.length-1) {
+    currentPlayerIdx++;
+    renderPlay(); startTimer();
+  } else {
+    showValidation();
+  }
+}
+
+function collectAnswers() {
+  selectedCats.forEach(c=>{
+    const el=document.getElementById('field-'+c.replace(/\s/g,'_'));
+    if(el) roundAnswers[players[currentPlayerIdx]][c]=el.value.trim();
+  });
+}
+
+function showValidation() {
+  document.getElementById('validate-sub').textContent = `Letra: ${currentLetter} — confirme as respostas`;
+  roundPoints={};
+  players.forEach(p=>{ roundPoints[p]={}; selectedCats.forEach(c=>{
+    const ans=roundAnswers[p][c]||'';
+    roundPoints[p][c] = (ans && ans.toUpperCase().startsWith(currentLetter)) ? 10 : 0;
+  });});
+
+  document.getElementById('validate-list').innerHTML = players.map(p=>`
+    <div class="validation-card">
+      <div class="val-header">👤 ${p}</div>
+      ${selectedCats.map(c=>{
+        const ans=roundAnswers[p][c]||'';
+        const key=`${p}||${c}`;
+        const pts=roundPoints[p][c];
+        return `<div class="val-row">
+          <span class="val-cat">${c}</span>
+          <span class="val-ans ${ans?'':'empty'}">${ans||'(vazio)'}</span>
+          ${ans?`<div class="val-points">
+            <button class="val-btn ${pts===10?'active-ok':''}" id="vb-ok-${btoa(key)}" onclick="setVal('${p}','${c}',10)">✓ 10</button>
+            <button class="val-btn ${pts===5?'active-dup':''}" id="vb-dup-${btoa(key)}" onclick="setVal('${p}','${c}',5)">≈ 5</button>
+            <button class="val-btn ${pts===0?'active-no':''}" id="vb-no-${btoa(key)}" onclick="setVal('${p}','${c}',0)">✗ 0</button>
+          </div>`:`<span style="font-size:12px;color:var(--text-muted)">0 pts</span>`}
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+  show('validate');
+}
+
+function setVal(player, cat, pts) {
+  roundPoints[player][cat]=pts;
+  const key=btoa(`${player}||${cat}`);
+  document.getElementById(`vb-ok-${key}`).className='val-btn'+(pts===10?' active-ok':'');
+  document.getElementById(`vb-dup-${key}`).className='val-btn'+(pts===5?' active-dup':'');
+  document.getElementById(`vb-no-${key}`).className='val-btn'+(pts===0?' active-no':'');
+}
+
+function finishValidation() {
+  players.forEach(p=>{ let t=0; selectedCats.forEach(c=>t+=roundPoints[p][c]||0); allScores[p]+=t; });
+  showScores(false);
+}
+
+function showScores(final) {
+  const isLast = final || currentRound>=totalRounds;
+  document.getElementById('scores-sub').textContent = isLast
+    ? '🏆 Partida encerrada!'
+    : `Após rodada ${currentRound} de ${totalRounds} — letra ${currentLetter}`;
+
+  const sorted=[...players].sort((a,b)=>allScores[b]-allScores[a]);
+  const max=allScores[sorted[0]];
+  document.getElementById('scores-table').innerHTML=`
+    <tr><th>#</th><th>Jogador</th><th>Pontos</th></tr>
+    ${sorted.map((p,i)=>`<tr class="${allScores[p]===max&&isLast?'winner-row':''}">
+      <td>${i+1}º</td><td>${p}</td><td class="score-num">${allScores[p]}</td>
+    </tr>`).join('')}`;
+
+  const btn=document.getElementById('next-round-btn');
+  if(isLast) { btn.textContent='🎉 Nova partida'; btn.onclick=goSetup; }
+  else { btn.textContent='Próxima rodada →'; btn.onclick=nextRound; }
+  show('scores');
+}
+
+function goSetup() { initSetup(); show('setup'); }
+
+initSetup();
+</script>
+</body>
+</html>
